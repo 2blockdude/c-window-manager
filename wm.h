@@ -10,26 +10,26 @@ typedef struct WindowManager
 	Window root;			// handle to root window
 
 	// wm functions
-	void (*run)								(struct WindowManager *wm);
-	void (*close)							(struct WindowManager *wm);
+	void (*run)								(struct WindowManager *self);
+	void (*close)							(struct WindowManager *self);
 }WindowManager;
 
 WindowManager *new_window_manager	();
-static void run_window_manager		(WindowManager *wm);
-static void close_window_manager		(WindowManager *wm);
+static void run_window_manager		(WindowManager *self);
+static void close_window_manager		(WindowManager *self);
 
-static void on_create_notify			(XCreateWindowEvent *e);
-static void on_destroy_notify			(XDestroyWindowEvent *e);
-static void on_reparent_notify		(XReparentEvent *e);
-static void on_map_notify				(XMapEvent *e);
-static void on_unmap_notify			(XUnmapEvent *e);
-static void on_configure_notify		(XConfigureEvent *e);
-static void on_map_request				(XMapRequestEvent *e);
-static void on_configure_request		(XConfigureRequestEvent *e);
-static void on_button_press			(XButtonEvent *e);
-static void on_button_release			(XButtonEvent *e);
-static void on_motion_notify			(XMotionEvent *e);
-static void on_key_press				(XKeyEvent *e);
-static void on_key_release				(XKeyEvent *e);
+static void on_create_notify			(WindowManager *self, XCreateWindowEvent *e);
+static void on_destroy_notify			(WindowManager *self, XDestroyWindowEvent *e);
+static void on_reparent_notify		(WindowManager *self, XReparentEvent *e);
+static void on_map_notify				(WindowManager *self, XMapEvent *e);
+static void on_unmap_notify			(WindowManager *self, XUnmapEvent *e);
+static void on_configure_notify		(WindowManager *self, XConfigureEvent *e);
+static void on_map_request				(WindowManager *self, XMapRequestEvent *e);
+static void on_configure_request		(WindowManager *self, XConfigureRequestEvent *e);
+static void on_button_press			(WindowManager *self, XButtonEvent *e);
+static void on_button_release			(WindowManager *self, XButtonEvent *e);
+static void on_motion_notify			(WindowManager *self, XMotionEvent *e);
+static void on_key_press				(WindowManager *self, XKeyEvent *e);
+static void on_key_release				(WindowManager *self, XKeyEvent *e);
 
 #endif
