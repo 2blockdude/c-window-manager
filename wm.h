@@ -1,5 +1,5 @@
-#ifndef WINDOW_MANGER
-#define WINDOW_MANGER
+#ifndef WINDOW_MANAGER
+#define WINDOW_MANAGER
 
 #include <X11/Xlib.h>
 
@@ -8,6 +8,10 @@ typedef struct WindowManager
 	// wm stuff
 	Display *display;		// handle Xlib display struct
 	Window root;			// handle to root window
+
+	// note: Window is a typedef for XID and XID is a typedef for unsigned long.
+	// Soooo Window is an unsigned long. It is used as an address for the
+	// actual window that the Xserver handles.
 
 	// wm functions
 	void (*run)								(struct WindowManager *self);
@@ -31,5 +35,7 @@ static void on_button_release			(WindowManager *self, XButtonEvent *e);
 static void on_motion_notify			(WindowManager *self, XMotionEvent *e);
 static void on_key_press				(WindowManager *self, XKeyEvent *e);
 static void on_key_release				(WindowManager *self, XKeyEvent *e);
+
+static void frame							(WindowManager *self, Window w);
 
 #endif

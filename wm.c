@@ -49,6 +49,7 @@ static void run_window_manager(WindowManager *self)
 			case MapRequest:
 				break;
 			case ConfigureRequest:
+				on_configure_request(self, &e.xconfigurerequest);
 				break;
 			case ButtonPress:
 				break;
@@ -74,14 +75,48 @@ static void close_window_manager(WindowManager *self)
 	self->display = NULL;
 }
 
-static void on_create_notify		(WindowManager *self, XCreateWindowEvent *e)		{}
-static void on_destroy_notify		(WindowManager *self, XDestroyWindowEvent *e)	{}
-static void on_reparent_notify	(WindowManager *self, XReparentEvent *e)			{}
-static void on_map_notify			(WindowManager *self, XMapEvent *e)					{}
-static void on_unmap_notify		(WindowManager *self, XUnmapEvent *e)				{}
-static void on_configure_notify	(WindowManager *self, XConfigureEvent *e)			{}
-static void on_map_request			(WindowManager *self, XMapRequestEvent *e)		{}
-static void on_configure_request	(WindowManager *self, XConfigureRequestEvent *e){}
+static void on_create_notify(WindowManager *self, XCreateWindowEvent *e) {}
+static void on_destroy_notify(WindowManager *self, XDestroyWindowEvent *e) {}
+static void on_reparent_notify(WindowManager *self, XReparentEvent *e) {}
+static void on_map_notify(WindowManager *self, XMapEvent *e) {}
+static void on_unmap_notify(WindowManager *self, XUnmapEvent *e) {}
+static void on_configure_notify(WindowManager *self, XConfigureEvent *e) {}
+
+static void on_map_request(WindowManager *self, XMapRequestEvent *e)
+{
+	// note: frame is a custom function
+	// frame window with window decorations.
+	// frame e->window to self
+	frame(self, e->window);
+	// map window i guess to main display
+	XMapWindow(self->display, e->window);
+}
+
+static void frame(WindowManager *self, Window w)
+{
+	XWindowAttributes windowAttributes;
+	XGetWindowAttributes(self->display, w, &windowAttributes);
+}
+
+static void on_configure_request(WindowManager *self, XConfigureRequestEvent *e)
+{
+	XWindowChanges changes;
+
+	// copy stuff from e to changes for some reason
+	changes.x = e->x;
+	changes.y = e->y;
+	changes.width = e->width;
+	changes.height = e->height;
+	changes.border_width = e->border_width;
+	changes.sibling = e->above;
+	changes.stack_mode = e->detail;
+
+	// grant request
+	XConfigureWindow(self->display, e->window, e->value_mask, &changes);
+
+	printf("resized");
+}
+
 static void on_button_press		(WindowManager *self, XButtonEvent *e)				{}
 static void on_button_release		(WindowManager *self, XButtonEvent *e)				{}
 static void on_motion_notify		(WindowManager *self, XMotionEvent *e)				{}
