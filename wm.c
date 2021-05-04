@@ -15,20 +15,6 @@ WindowManager *new_window_manager()
 	wm->run = run_window_manager;
 	wm->close = close_window_manager;
 
-	wm->on_create = on_create_notify;
-	wm->on_destroy = on_destroy_notify;
-	wm->on_reparent = on_reparent_notify;
-	wm->on_map = on_map_notify;
-	wm->on_unmap = on_unmap_notify;
-	wm->on_configure = on_configure_notify;
-	wm->on_map_request = on_map_request;
-	wm->on_configure_request = on_configure_request;
-	wm->on_button_press = on_button_press;
-	wm->on_button_release = on_button_release;
-	wm->on_motion = on_motion_notify;
-	wm->on_key_press = on_key_press;
-	wm->on_key_release = on_key_release;
-
 	return wm;
 }
 
@@ -50,13 +36,13 @@ static void run_window_manager(WindowManager *wm)
 		switch (e.type)
 		{
 			case CreateNotify:
-				wm->on_create(&e.xcreatewindow);
+				on_create_notify(&e.xcreatewindow);
 				break;
 			case DestroyNotify:
-				wm->on_destroy(&e.xdestroywindow);
+				on_destroy_notify(&e.xdestroywindow);
 				break;
 			case ReparentNotify:
-				wm->on_reparent(&e.xreparent);
+				on_reparent_notify(&e.xreparent);
 				break;
 			case MapNotify:
 				break;

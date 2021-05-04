@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g
 LIBS = -lX11
 MAIN = main
-SRC = 
+SRC = wm
 OBJ = $(MAIN:%=%.o) $(SRC:%=%.o)
 DEPS = $(SRC:%=%.h)
 

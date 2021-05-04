@@ -12,21 +12,6 @@ typedef struct WindowManager
 	// wm functions
 	void (*run)								(struct WindowManager *wm);
 	void (*close)							(struct WindowManager *wm);
-	
-	// notify function pointers
-	void (*on_create)						(XCreateWindowEvent *e);
-	void (*on_destroy)					(XDestroyWindowEvent *e);
-	void (*on_reparent)					(XReparentEvent *e);
-	void (*on_map)							(XMapEvent *e);
-	void (*on_unmap)						(XUnmapEvent *e);
-	void (*on_configure)					(XConfigureEvent *e);
-	void (*on_map_request)				(XMapRequestEvent *e);
-	void (*on_configure_request)		(XConfigureRequestEvent *e);
-	void (*on_button_press)				(XButtonEvent *e);
-	void (*on_button_release)			(XButtonEvent *e);
-	void (*on_motion)						(XMotionEvent *e);
-	void (*on_key_press)					(XKeyEvent *e);
-	void (*on_key_release)				(XKeyEvent *e);
 }WindowManager;
 
 WindowManager *new_window_manager	();
