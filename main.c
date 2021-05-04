@@ -1,43 +1,34 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <X11/Xlib.h>
 
-// global stuff
-Display *display;		// handle Xlib display struct
-Window root;			// handle to root window
+void WindowManagerRun(Display *display, Window *root);
 
-void windowManagerCreate();
-void windowManagerDestroy();
-void windowManagerRun();
+void OnCreateNotify(XCreateWindowEvent *e);
+void OnDestroyNotify(XDestroyWindowEvent *e);
+void OnReparentNotify(XReparentEvent *e);
 
 int main()
 {
+	Display *display;		// handle Xlib display struct
+	Window root;			// handle to root window
 
-	windowManagerCreate();
+	// init wm
+	display = XOpenDisplay(NULL);
+	root = DefaultRootWindow(display);
+	if (display == NULL) return 0;
 
-	windowManagerRun();
-
-	windowManagerDestroy();
+	WindowManagerRun(display, &root);
+	XCloseDisplay(display);
 
 	return 0;
 }
 
-void windowManagerCreate()
-{
-	// if it could not connect to x server exit with 1
-	if (!(display = XOpenDisplay(NULL))) exit(1);
-	root = DefaultRootWindow(display);
-}
-
-void windowManagerDestroy()
-{
-	XCloseDisplay(display);
-}
-
-void windowManagerRun()
+void WindowManagerRun(Display *display, Window *root)
 {
 	// note: error code for an already running window manager is BadAccess provided by XErrorEvent I think
-	XSelectInput(display, root, SubstructureRedirectMask | SubstructureNotifyMask);
+	XSelectInput(display, *root, SubstructureRedirectMask | SubstructureNotifyMask);
 	//XSync(display, 0);
 
 	// main loop
@@ -50,16 +41,20 @@ void windowManagerRun()
 		switch (e.type)
 		{
 			case CreateNotify:
-				e.xcreatewindow;
+				OnCreateNotify(&e.xcreatewindow);
 				break;
 			case DestroyNotify:
-				e.xdestroywindow;
+				OnDestroyNotify(&e.xdestroywindow);
 				break;
 			case ReparentNotify:
-				e.xreparent;
+				OnReparentNotify(&e.xreparent);
 				break;
 			default:
 				printf("Ignored event");
 		}
 	}
 }
+
+void OnCreateNotify(XCreateWindowEvent *e) {}
+void OnDestroyNotify(XDestroyWindowEvent *e) {}
+void OnReparentNotify(XReparentEvent *e) {}
