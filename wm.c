@@ -39,12 +39,11 @@ static void run_window_manager(WM *self)
 	// note: for SubstructreRedirectMask | SubstructureNotifyMask I think we are
 	// combining the two masks for some reason.
 	// Another note: "|" is the bitwise "or" operator.
-	XSelectInput(self->display, self->root, SubstructureRedirectMask);
+	XSelectInput(self->display, self->root, SubstructureRedirectMask | SubstructureNotifyMask);
 	XSync(self->display, 0);
-	//PointerMotionMask |  | SubstructureNotifyMask | ButtonPressMask | KeyPressMask
+	//PointerMotionMask |  |  | ButtonPressMask | KeyPressMask
 
 	XGrabServer(self->display);
-
 	Window returned_root, returned_parent;
 	Window* top_level_windows;
 	unsigned int num_top_level_windows;
@@ -63,29 +62,6 @@ static void run_window_manager(WM *self)
 	//   e. Ungrab X server.
 	XUngrabServer(self->display);
 
-	win = XCreateSimpleWindow(
-			self->display,
-			self->root,
-			0,
-			0,
-			500,
-			500,
-			0, // border width
-			0x0000FF, // boarder color. blue
-			0XFF0000); // background color
-	XSelectInput(self->display, win, ExposureMask|ButtonPressMask|KeyPressMask);
-	//XMapWindow(self->display, win);
-	// seems to do the same as above
-	XMapRaised(self->display, win);
-	//XLowerWindow(self->display, win);
-
-	XTextItem i;
-	i.delta = 0;
-	i.font = None;
-
-	GC gc = XCreateGC(self->display, win, 0, 0);
-	XSync(self->display, 0);
-
 	Cursor c = XCreateFontCursor(self->display, XC_left_ptr);
 	XDefineCursor(self->display, self->root, c);
 	XSync(self->display, 0);
@@ -96,24 +72,7 @@ static void run_window_manager(WM *self)
 		XEvent e;
 		XNextEvent(self->display, &e);
 
-		XClearWindow(self->display, win);
-		char string[100];
-
-		sprintf(string,
-				"type: %d " \
-				"buttonpress: %d " \
-				"keypress: %d " \
-				"lasteven: %d ",
-				e.type,
-				ButtonPress,
-				KeyPress,
-				LASTEvent);
-
-		i.chars = string;
-		i.nchars = strlen(string);
-
-		XDrawText(self->display, win, gc, 100, 100, &i, 1);
-
+		//dispatch event
 		if (self->handler[e.type])
 			self->handler[e.type](self, &e);
 
@@ -224,7 +183,7 @@ static void frame(WM *self, Window w)
 	XMapWindow(self->display, frame);
 
 	// store the client frame window
-	//self->clients[self->numClients++] = frame;
+	self->clients[self->numClients++] = frame;
 
 	// not sure how this stuff works
 	// 9. Grab universal window management actions on client window.
