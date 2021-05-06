@@ -2,12 +2,19 @@
 #define WINDOW_MANAGER
 
 #include <X11/Xlib.h>
+#include <X11/Xutil.h> // add some keys i guess
+#include <X11/Xos.h>
+#include <X11/cursorfont.h>
 
 typedef struct WindowManager
 {
 	// wm stuff
-	Display *display;		// handle Xlib display struct
-	Window root;			// handle to root window
+	Display *display;		// handle Xlib display struct. establishes a connection to the Xserver
+	Window root;			// handle to root window aka the window manager
+
+	// clients
+	int numClients;
+	Window clients[100];
 
 	// note: Window is a typedef for XID and XID is a typedef for unsigned long.
 	// Soooo Window is an unsigned long. It is used as an address for the
@@ -37,5 +44,7 @@ static void on_key_press				(WindowManager *self, XKeyEvent *e);
 static void on_key_release				(WindowManager *self, XKeyEvent *e);
 
 static void frame							(WindowManager *self, Window w);
+
+static Window win;
 
 #endif
