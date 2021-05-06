@@ -3,7 +3,7 @@
 
 int main()
 {
-	WindowManager *wm = new_window_manager();
+	WM *wm = new_window_manager();
 
 	if (wm == NULL) return 1;
 

@@ -5,9 +5,9 @@
 
 #include "wm.h"
 
-WindowManager *new_window_manager()
+WM *new_window_manager()
 {
-	WindowManager *wm = malloc(sizeof(WindowManager));;
+	WM *wm = malloc(sizeof(WM));;
 
 	wm->display = XOpenDisplay(NULL);
 	if (wm->display == NULL) return NULL;
@@ -17,10 +17,24 @@ WindowManager *new_window_manager()
 	wm->run = run_window_manager;
 	wm->close = close_window_manager;
 
+	wm->handler[CreateNotify] = on_create_notify;
+	wm->handler[DestroyNotify] = on_destroy_notify;
+	wm->handler[ReparentNotify] = on_reparent_notify;
+	wm->handler[MapNotify] = on_map_notify;
+	wm->handler[UnmapNotify] = on_unmap_notify;
+	wm->handler[ConfigureNotify] = on_configure_notify;
+	wm->handler[MapRequest] = on_map_request;
+	wm->handler[ConfigureRequest] = on_configure_request;
+	wm->handler[ButtonPress] = on_button_press;
+	wm->handler[ButtonRelease] = on_button_release;
+	wm->handler[MotionNotify] = on_motion_notify;
+	wm->handler[KeyPress] = on_key_press;
+	wm->handler[KeyRelease] = on_key_release;
+
 	return wm;
 }
 
-static void run_window_manager(WindowManager *self)
+static void run_window_manager(WM *self)
 {
 	// note: for SubstructreRedirectMask | SubstructureNotifyMask I think we are
 	// combining the two masks for some reason.
@@ -100,93 +114,56 @@ static void run_window_manager(WindowManager *self)
 
 		XDrawText(self->display, win, gc, 100, 100, &i, 1);
 
+		if (self->handler[e.type])
+			self->handler[e.type](self, &e);
 
-		// dispatch events
-		switch (e.type)
-		{
-			case CreateNotify:
-				on_create_notify(self, &e.xcreatewindow);
-				break;
-			case DestroyNotify:
-				on_destroy_notify(self, &e.xdestroywindow);
-				break;
-			case ReparentNotify:
-				on_reparent_notify(self, &e.xreparent);
-				break;
-			case MapNotify:
-				break;
-			case UnmapNotify:
-				break;
-			case ConfigureNotify:
-				break;
-			case MapRequest:
-				break;
-			case ConfigureRequest:
-				on_configure_request(self, &e.xconfigurerequest);
-				break;
-			case ButtonPress:
-				on_button_press(self, &e.xbutton);
-				break;
-			case ButtonRelease:
-				break;
-			case MotionNotify:
-				// Skip any already pending motion events.
-				while (XCheckTypedWindowEvent(self->display, e.xmotion.window, MotionNotify, &e)) {}
-				on_motion_notify(self, &e.xmotion);
-				break;
-			case KeyPress:
-				on_key_press(self, &e.xkey);
-				break;
-			case KeyRelease:
-				break;
-			default:
-				break;
-		}
 	}
 }
 
-static void close_window_manager(WindowManager *self)
+static void close_window_manager(WM *self)
 {
 	// break connection to xserver
 	XCloseDisplay(self->display);
 	self->display = NULL;
 }
 
-static void on_create_notify(WindowManager *self, XCreateWindowEvent *e) {}
-static void on_destroy_notify(WindowManager *self, XDestroyWindowEvent *e) {}
-static void on_reparent_notify(WindowManager *self, XReparentEvent *e) {}
-static void on_map_notify(WindowManager *self, XMapEvent *e) {}
-static void on_unmap_notify(WindowManager *self, XUnmapEvent *e) {}
-static void on_configure_notify(WindowManager *self, XConfigureEvent *e) {}
+static void on_create_notify(WM *self, XEvent *e) {}
+static void on_destroy_notify(WM *self, XEvent *e) {}
+static void on_reparent_notify(WM *self, XEvent *e) {}
+static void on_map_notify(WM *self, XEvent *e) {}
+static void on_unmap_notify(WM *self, XEvent *e) {}
+static void on_configure_notify(WM *self, XEvent *e) {}
 
-static void on_map_request(WindowManager *self, XMapRequestEvent *e)
+static void on_map_request(WM *self, XEvent *e)
 {
+	XMapRequestEvent *ev = &e->xmaprequest;
 	// note: frame is a custom function
 	// frame window with window decorations.
 	// frame e->window to self
-	frame(self, e->window);
+	frame(self, ev->window);
 	// map window i guess to main display
-	XMapWindow(self->display, e->window);
+	XMapWindow(self->display, ev->window);
 }
 
-static void on_configure_request(WindowManager *self, XConfigureRequestEvent *e)
+static void on_configure_request(WM *self, XEvent *e)
 {
+	XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges changes;
 
 	// copy stuff from e to changes for some reason
-	changes.x = e->x;
-	changes.y = e->y;
-	changes.width = e->width;
-	changes.height = e->height;
-	changes.border_width = e->border_width;
-	changes.sibling = e->above;
-	changes.stack_mode = e->detail;
+	changes.x = ev->x;
+	changes.y = ev->y;
+	changes.width = ev->width;
+	changes.height = ev->height;
+	changes.border_width = ev->border_width;
+	changes.sibling = ev->above;
+	changes.stack_mode = ev->detail;
 
 	// grant request
-	XConfigureWindow(self->display, e->window, e->value_mask, &changes);
+	XConfigureWindow(self->display, ev->window, ev->value_mask, &changes);
 }
 
-static void on_button_press(WindowManager *self, XButtonEvent *e)
+static void on_button_press(WM *self, XEvent *e)
 {
 	XGrabServer(self->display);
 	XSetCloseDownMode(self->display, DestroyAll);
@@ -194,19 +171,24 @@ static void on_button_press(WindowManager *self, XButtonEvent *e)
 	XSync(self->display, False);
 	XUngrabServer(self->display);
 }
-static void on_button_release		(WindowManager *self, XButtonEvent *e)				{}
 
-static void on_motion_notify(WindowManager *self, XMotionEvent *e)
+static void on_button_release(WM *self, XEvent *e)
 {
 }
 
-static void on_key_press(WindowManager *self, XKeyEvent *e)
+static void on_motion_notify(WM *self, XEvent *e)
 {
 }
 
-static void on_key_release			(WindowManager *self, XKeyEvent *e)					{}
+static void on_key_press(WM *self, XEvent *e)
+{
+}
 
-static void frame(WindowManager *self, Window w)
+static void on_key_release(WM *self, XEvent *e)
+{
+}
+
+static void frame(WM *self, Window w)
 {
 	// get attributes of the window sending the map request
 	XWindowAttributes windowAttributes;
