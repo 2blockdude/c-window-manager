@@ -2,14 +2,12 @@
 #define WINDOW_MANAGER
 
 #include <X11/Xlib.h>
-#include <X11/Xutil.h> // add some keys i guess
-#include <X11/Xos.h>
-#include <X11/cursorfont.h>
 
 typedef struct WindowManager WM;
 struct WindowManager
 {
 	// wm stuff
+	int running;
 	Display *display;		// handle Xlib display struct. establishes a connection to the Xserver
 	Window root;			// handle to root window aka the window manager
 
@@ -30,13 +28,15 @@ struct WindowManager
 };
 
 WM *new_window_manager	();
-static void run_window_manager		(WM *self);
+static void setup_window_manager		(WM *self);
+static void start_window_manager		(WM *self);
 static void close_window_manager		(WM *self);
 
 static void on_create_notify			(WM *self, XEvent *e);
 static void on_destroy_notify			(WM *self, XEvent *e);
 static void on_reparent_notify		(WM *self, XEvent *e);
 static void on_map_notify				(WM *self, XEvent *e);
+static void on_mapping_notify			(WM *self, XEvent *e);
 static void on_unmap_notify			(WM *self, XEvent *e);
 static void on_configure_notify		(WM *self, XEvent *e);
 static void on_map_request				(WM *self, XEvent *e);
@@ -47,8 +47,6 @@ static void on_motion_notify			(WM *self, XEvent *e);
 static void on_key_press				(WM *self, XEvent *e);
 static void on_key_release				(WM *self, XEvent *e);
 
-static void frame							(WM *self, Window w);
-
-static Window win;
+static void decorate_window			(WM *self, Window w);
 
 #endif
