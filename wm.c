@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <time.h>
 
 #include <X11/Xlib.h>
@@ -83,22 +84,39 @@ static void setup_window_manager(WM *self)
 	XSelectInput(self->display, self->root, wa.event_mask);
 
 	XUngrabKey(self->display, AnyKey, AnyModifier, self->root);
-	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_Escape), Mod1Mask, self->root, 0, GrabModeAsync, GrabModeAsync);
-	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_s), Mod1Mask, self->root, 0, GrabModeAsync, GrabModeAsync);
+	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_Escape), Mod1Mask, self->root, 1, GrabModeAsync, GrabModeAsync);
+	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_s), Mod1Mask, self->root, 1, GrabModeAsync, GrabModeAsync);
 
 	start_window_manager(self);
 }
 
 static void start_window_manager(WM *self)
 {
+	XTextItem i;
+	i.delta = 0;
+	i.font = None;
+
+	GC gc = XCreateGC(self->display, self->root, 0, 0);
+	XSync(self->display, 0);
+
 	self->running = 1;
 
 	// main loop
 	XEvent e;
 	XSync(self->display, 0);
 	while (self->running && !XNextEvent(self->display, &e))
+	{
 		if (self->handler[e.type])
 			self->handler[e.type](self, &e);
+
+		XClearWindow(self->display, self->root);
+		char string[100];
+		sprintf(string, "%d | %d | %d", e.type, KeyRelease, 10);
+
+		i.chars = string;
+		i.nchars = strlen(string);
+		XDrawText(self->display, self->root, gc, 100, 100, &i, 1);
+	}
 }
 
 static void close_window_manager(WM *self)
@@ -139,7 +157,7 @@ static void on_map_request(WM *self, XEvent *e)
 	XMapRequestEvent *ev = &e->xmaprequest;
 
 	// frame window with window decorations.
-	decorate_window(self, ev->window);
+	//decorate_window(self, ev->window);
 	XMapWindow(self->display, ev->window);
 }
 
@@ -202,6 +220,19 @@ static void on_key_press(WM *self, XEvent *e)
 
 static void on_key_release(WM *self, XEvent *e)
 {
+	if (fork() == 0)
+	{
+		if (self->display)
+			close(ConnectionNumber(self->display));
+		setsid();
+
+		char *empty[0];
+		execvp("st", empty);
+
+		fprintf(stderr, "wm: execvp %s", "st");
+		perror(" failed");
+		exit(EXIT_SUCCESS);
+	}
 }
 
 static void decorate_window(WM *self, Window w)
@@ -219,7 +250,7 @@ static void decorate_window(WM *self, Window w)
 			windowAttributes.y,
 			windowAttributes.width,
 			windowAttributes.height,
-			10, // border width
+			2, // border width
 			0x0000FF, // boarder color. i think black
 			0X0000FF); // background color
 

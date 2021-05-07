@@ -27,7 +27,7 @@ struct WindowManager
 	void (*handler[LASTEvent])			(WM *self, XEvent *e);
 };
 
-WM *new_window_manager	();
+WM *new_window_manager					();
 static void setup_window_manager		(WM *self);
 static void start_window_manager		(WM *self);
 static void close_window_manager		(WM *self);
