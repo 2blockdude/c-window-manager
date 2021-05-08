@@ -181,14 +181,7 @@ static void on_motion_notify(WM *self, XEvent *e)
 
 	if (ev->state & Button1Mask)
 	{
-		Window win_return;
-		int rx, ry;
-		int wx, wy;
-		unsigned int mask_return;
-		if (XQueryPointer(self->display, self->root, &win_return, &win_return, &rx, &ry, &wx, &wy, &mask_return))
-		{
-			XMoveWindow(self->display, ev->window, rx, ry);
-		}
+		XMoveWindow(self->display, ev->window, ev->x_root, ev->y_root);
 	}
 }
 
