@@ -116,25 +116,17 @@ static void on_destroy_notify(WM *self, XEvent *e) {}
 static void on_reparent_notify(WM *self, XEvent *e) {}
 static void on_map_notify(WM *self, XEvent *e) {}
 
-static void on_mapping_notify(WM *self, XEvent *e)
-{
-	//XMappingEvent *ev = &e->xmapping;
+static void on_mapping_notify(WM *self, XEvent *e) {}
 
-	//XRefreshKeyboardMapping(ev);
-	//if (ev->request == MappingKeyboard)
-	//{
-	//	//XGrabKey(
-	//	//		self->display,
-	//	//		XKeysymToKeycode(self->display, XK_Escape),
-	//	//		Mod1Mask,
-	//	//		self->root,
-	//	//		1,
-	//	//		GrabModeAsync,
-	//	//		GrabModeAsync);
-	//}
+static void on_unmap_notify(WM *self, XEvent *e)
+{
+	XUnmapEvent *ev = &e->xunmap;
+
+	if (ev->event == self->root)
+		return;
+	//undecorate_window(self, ev->window);
 }
 
-static void on_unmap_notify(WM *self, XEvent *e) {}
 static void on_configure_notify(WM *self, XEvent *e) {}
 
 static void on_map_request(WM *self, XEvent *e)
@@ -142,7 +134,13 @@ static void on_map_request(WM *self, XEvent *e)
 	XMapRequestEvent *ev = &e->xmaprequest;
 
 	// frame window with window decorations.
-	decorate_window(self, ev->window);
+	//decorate_window(self, ev->window);
+	XGrabButton(self->display, Button1, 0, ev->window, 0, ButtonPressMask | ButtonReleaseMask, GrabModeAsync, GrabModeAsync, None, None);
+	XGrabButton(self->display, Button1, Mod1Mask, ev->window, 0, ButtonMotionMask, GrabModeAsync, GrabModeAsync, None, None);
+	XGrabButton(self->display, Button3, Mod1Mask, ev->window, 0, ButtonPressMask | ButtonReleaseMask | ButtonMotionMask, GrabModeAsync, GrabModeAsync, None, None);
+	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_F4), Mod1Mask, ev->window, 0, GrabModeAsync, GrabModeAsync);
+	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_Tab), Mod1Mask, ev->window, 0, GrabModeAsync, GrabModeAsync);
+
 	XMapWindow(self->display, ev->window);
 }
 
@@ -166,15 +164,32 @@ static void on_configure_request(WM *self, XEvent *e)
 
 static void on_button_press(WM *self, XEvent *e)
 {
-	XButtonEvent *ev = &e->xbutton;
+	XButtonPressedEvent *ev = &e->xbutton;
+
+	XRaiseWindow(self->display, ev->window);
 }
 
 static void on_button_release(WM *self, XEvent *e)
 {
+	XButtonEvent *ev = &e->xbutton;
+
 }
 
 static void on_motion_notify(WM *self, XEvent *e)
 {
+	XMotionEvent *ev = &e->xmotion;
+
+	if (ev->state & Button1Mask)
+	{
+		Window win_return;
+		int rx, ry;
+		int wx, wy;
+		unsigned int mask_return;
+		if (XQueryPointer(self->display, self->root, &win_return, &win_return, &rx, &ry, &wx, &wy, &mask_return))
+		{
+			XMoveWindow(self->display, ev->window, rx, ry);
+		}
+	}
 }
 
 static void on_key_press(WM *self, XEvent *e)
@@ -184,8 +199,7 @@ static void on_key_press(WM *self, XEvent *e)
 	if ((ev->state & Mod1Mask) && (ev->keycode == XKeysymToKeycode(self->display, XK_s)))
 	{
 		// note: fork comes from unistd.h and when called starts a child process for the next functions
-		self->random_1 = fork();
-		if (self->random_1 == 0)
+		if (fork() == 0)
 		{
 			if (self->display)
 				close(ConnectionNumber(self->display));
@@ -195,36 +209,42 @@ static void on_key_press(WM *self, XEvent *e)
 
 			fprintf(stderr, "wm: execvp %s", "dmenu");
 			perror(" failed");
-			exit(EXIT_SUCCESS);
+			exit(0);
 		}
 	}
-	if ((ev->state & Mod1Mask) && (ev->keycode == XKeysymToKeycode(self->display, XK_Escape)))
+	else if ((ev->state & Mod1Mask) && (ev->keycode == XKeysymToKeycode(self->display, XK_Escape)))
 	{
 		self->running = 0;
 	}
+	else if ((ev->state & Mod1Mask) && (ev->keycode == XKeysymToKeycode(self->display, XK_F4)))
+	{
+		Atom *supportedProtocols;
+		int numSupportedProtocols;
+
+		if (XGetWMProtocols(self->display, ev->window, &supportedProtocols, &numSupportedProtocols))
+		{
+			// gracefully close
+			XEvent msg;
+			msg.xclient.type = ClientMessage;
+			msg.xclient.message_type =	XInternAtom(self->display, "WM_PROTOCOLS", 0);
+			msg.xclient.window = ev->window;
+			msg.xclient.format = 32;
+			msg.xclient.data.l[0] = XInternAtom(self->display, "WM_DELETE_WINDOW", 0);
+			XSendEvent(self->display, ev->window, 0, 0, &msg);
+		}
+		else
+		{
+			// force close
+			XGrabServer(self->display);
+			XSetCloseDownMode(self->display, DestroyAll);
+			XKillClient(self->display, ev->window);
+			XSync(self->display, 0);
+			XUngrabServer(self->display);
+		}
+	}
 }
 
-static void on_key_release(WM *self, XEvent *e)
-{
-	XKeyEvent *ev = &e->xkey;
-
-	//{
-	//	// note: fork comes from unistd.h and when called starts a child process for the next functions
-	//	if (fork() == 0)
-	//	{
-	//		if (self->display)
-	//			close(ConnectionNumber(self->display));
-	//		setsid();
-
-	//		char *empty[0];
-	//		execvp("st", empty);
-
-	//		fprintf(stderr, "wm: execvp %s", "st");
-	//		perror(" failed");
-	//		exit(EXIT_SUCCESS);
-	//	}
-	//}
-}
+static void on_key_release(WM *self, XEvent *e) {}
 
 static void decorate_window(WM *self, Window w)
 {
@@ -249,20 +269,21 @@ static void decorate_window(WM *self, Window w)
 	XSelectInput(self->display, frame, SubstructureRedirectMask | SubstructureNotifyMask);
 
 	// add client to save set, so that it will be restored and kept alive if we crash
-	XAddToSaveSet(self->display, w);
+	// don't really want for now
+	// XAddToSaveSet(self->display, w);
 
 	// reparent request window
 	XReparentWindow(
 			self->display,
 			w,			// window to get reparented
 			frame,	// parent window
-			0, 0); // offset of client window within the frame. unsure what that mean
+			0, 0);	// offset of client window within the frame window
 
 	// map frame for some reason
 	XMapWindow(self->display, frame);
 
 	// store the client frame window
-	//self->clients[self->numClients++] = frame;
+	// self->clients[w % 100] = frame;
 
 
 	// Grab universal window management actions on client window.
@@ -274,4 +295,13 @@ static void decorate_window(WM *self, Window w)
 	XGrabButton(self->display, Button3, Mod1Mask, w, 0, ButtonPressMask | ButtonReleaseMask | ButtonMotionMask, GrabModeAsync, GrabModeAsync, None, None);
 	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_F4), Mod1Mask, w, 0, GrabModeAsync, GrabModeAsync);
 	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_Tab), Mod1Mask, w, 0, GrabModeAsync, GrabModeAsync);
+}
+
+static void undecorate_window(WM *self, Window w)
+{
+	// reverse of frame
+	Window frame = self->clients[w % 100];
+
+	XUnmapWindow(self->display, frame);
+	XDestroyWindow(self->display, frame);
 }

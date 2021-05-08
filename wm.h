@@ -11,10 +11,7 @@ struct WindowManager
 	Display *display;		// handle Xlib display struct. establishes a connection to the Xserver
 	Window root;			// handle to root window aka the window manager
 
-	int random_1;
-	int random_2;
-
-	// clients
+	// clients todo: replace with binary tree or hash table
 	int numClients;
 	Window clients[100];
 
@@ -51,5 +48,6 @@ static void on_key_press				(WM *self, XEvent *e);
 static void on_key_release				(WM *self, XEvent *e);
 
 static void decorate_window			(WM *self, Window w);
+static void undecorate_window			(WM *self, Window w);
 
 #endif
