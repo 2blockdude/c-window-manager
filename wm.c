@@ -75,14 +75,14 @@ static void setup_window_manager(WM *self)
 	// create cursor
 	int snum = DefaultScreen(self->display);
 	Cursor c = XCreateFontCursor(self->display, XC_left_ptr);
-	//XDefineCursor(self->display, self->root, c);
+	XDefineCursor(self->display, self->root, c);
 	XWarpPointer(self->display, None, self->root, 0, 0, 0, 0, DisplayWidth(self->display, snum) / 2, DisplayHeight(self->display, snum) / 2);
 
-	XSetWindowAttributes wa;
-	wa.cursor = c;
-	wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask;
+	//XSetWindowAttributes wa;
+	//wa.cursor = c;
+	//wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask;
 	////|ButtonPressMask|PointerMotionMask|EnterWindowMask|LeaveWindowMask|StructureNotifyMask|PropertyChangeMask;
-	XChangeWindowAttributes(self->display, self->root, CWEventMask | CWCursor, &wa);
+	//XChangeWindowAttributes(self->display, self->root, CWEventMask | CWCursor, &wa);
 	//XSelectInput(self->display, self->root, wa.event_mask);
 
 	XUngrabKey(self->display, AnyKey, AnyModifier, self->root);
@@ -94,31 +94,14 @@ static void setup_window_manager(WM *self)
 
 static void start_window_manager(WM *self)
 {
-	XTextItem i;
-	i.delta = 0;
-	i.font = None;
-
-	GC gc = XCreateGC(self->display, self->root, 0, 0);
-	XSync(self->display, 0);
-
 	self->running = 1;
 
 	// main loop
 	XEvent e;
 	XSync(self->display, 0);
 	while (self->running && !XNextEvent(self->display, &e))
-	{
 		if (self->handler[e.type])
 			self->handler[e.type](self, &e);
-
-		XClearWindow(self->display, self->root);
-		char string[100];
-		sprintf(string, "%d | %d | %d", e.type, self->random_1, 10);
-
-		i.chars = string;
-		i.nchars = strlen(string);
-		XDrawText(self->display, self->root, gc, 100, 100, &i, 1);
-	}
 }
 
 static void close_window_manager(WM *self)
