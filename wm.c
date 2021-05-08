@@ -4,6 +4,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <sys/wait.h>
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
@@ -50,42 +52,42 @@ static void setup_window_manager(WM *self)
 	XSync(self->display, 0);
 	//PointerMotionMask |  |  | ButtonPressMask | KeyPressMask | ButtonPressMask | KeyPressMask
 
-	XGrabServer(self->display);
-	Window returned_root, returned_parent;
-	Window* top_level_windows;
-	unsigned int num_top_level_windows;
-	XQueryTree(
-			self->display,
-			self->root,
-			&returned_root,
-			&returned_parent,
-			&top_level_windows,
-			&num_top_level_windows);
-	//     ii. Frame each top-level window.
-	for (unsigned int i = 0; i < num_top_level_windows; ++i)
-		decorate_window(self, top_level_windows[i]);
-	//     iii. Free top-level window array.
-	XFree(top_level_windows);
-	//   e. Ungrab X server.
-	XUngrabServer(self->display);
+	//XGrabServer(self->display);
+	//Window returned_root, returned_parent;
+	//Window* top_level_windows;
+	//unsigned int num_top_level_windows;
+	//XQueryTree(
+	//		self->display,
+	//		self->root,
+	//		&returned_root,
+	//		&returned_parent,
+	//		&top_level_windows,
+	//		&num_top_level_windows);
+	////     ii. Frame each top-level window.
+	//for (unsigned int i = 0; i < num_top_level_windows; ++i)
+	//	decorate_window(self, top_level_windows[i]);
+	////     iii. Free top-level window array.
+	//XFree(top_level_windows);
+	////   e. Ungrab X server.
+	//XUngrabServer(self->display);
 
 
 	// create cursor
 	int snum = DefaultScreen(self->display);
 	Cursor c = XCreateFontCursor(self->display, XC_left_ptr);
 	//XDefineCursor(self->display, self->root, c);
-	//XWarpPointer(self->display, None, self->root, 0, 0, 0, 0, DisplayWidth(self->display, snum) / 2, DisplayHeight(self->display, snum) / 2);
+	XWarpPointer(self->display, None, self->root, 0, 0, 0, 0, DisplayWidth(self->display, snum) / 2, DisplayHeight(self->display, snum) / 2);
 
 	XSetWindowAttributes wa;
 	wa.cursor = c;
-	wa.event_mask = SubstructureRedirectMask;
-	//|SubstructureNotifyMask|ButtonPressMask|PointerMotionMask|EnterWindowMask|LeaveWindowMask|StructureNotifyMask|PropertyChangeMask;
-	XChangeWindowAttributes(self->display, self->root, CWEventMask|CWCursor, &wa);
-	XSelectInput(self->display, self->root, wa.event_mask);
+	wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask;
+	////|ButtonPressMask|PointerMotionMask|EnterWindowMask|LeaveWindowMask|StructureNotifyMask|PropertyChangeMask;
+	XChangeWindowAttributes(self->display, self->root, CWEventMask | CWCursor, &wa);
+	//XSelectInput(self->display, self->root, wa.event_mask);
 
 	XUngrabKey(self->display, AnyKey, AnyModifier, self->root);
-	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_Escape), Mod1Mask, self->root, 1, GrabModeAsync, GrabModeAsync);
 	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_s), Mod1Mask, self->root, 1, GrabModeAsync, GrabModeAsync);
+	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_Escape), Mod1Mask, self->root, 1, GrabModeAsync, GrabModeAsync);
 
 	start_window_manager(self);
 }
@@ -111,7 +113,7 @@ static void start_window_manager(WM *self)
 
 		XClearWindow(self->display, self->root);
 		char string[100];
-		sprintf(string, "%d | %d | %d", e.type, KeyRelease, 10);
+		sprintf(string, "%d | %d | %d", e.type, self->random_1, 10);
 
 		i.chars = string;
 		i.nchars = strlen(string);
@@ -157,7 +159,7 @@ static void on_map_request(WM *self, XEvent *e)
 	XMapRequestEvent *ev = &e->xmaprequest;
 
 	// frame window with window decorations.
-	//decorate_window(self, ev->window);
+	decorate_window(self, ev->window);
 	XMapWindow(self->display, ev->window);
 }
 
@@ -196,43 +198,49 @@ static void on_key_press(WM *self, XEvent *e)
 {
 	XKeyEvent *ev = &e->xkey;
 
-	if (ev->state & Mod1Mask && ev->keycode == XKeysymToKeycode(self->display, XK_Escape))
+	if ((ev->state & Mod1Mask) && (ev->keycode == XKeysymToKeycode(self->display, XK_s)))
 	{
-		self->running = 0;
-	}
-	else if (ev->state & Mod1Mask && ev->keycode == XKeysymToKeycode(self->display, XK_s))
-	{
-		if (fork() == 0)
+		// note: fork comes from unistd.h and when called starts a child process for the next functions
+		self->random_1 = fork();
+		if (self->random_1 == 0)
 		{
 			if (self->display)
 				close(ConnectionNumber(self->display));
 			setsid();
 
-			char *empty[0];
-			execvp("st", empty);
+			execlp("dmenu_run", "");
 
-			fprintf(stderr, "wm: execvp %s", "st");
+			fprintf(stderr, "wm: execvp %s", "dmenu");
 			perror(" failed");
 			exit(EXIT_SUCCESS);
 		}
+	}
+	if ((ev->state & Mod1Mask) && (ev->keycode == XKeysymToKeycode(self->display, XK_Escape)))
+	{
+		self->running = 0;
 	}
 }
 
 static void on_key_release(WM *self, XEvent *e)
 {
-	if (fork() == 0)
-	{
-		if (self->display)
-			close(ConnectionNumber(self->display));
-		setsid();
+	XKeyEvent *ev = &e->xkey;
 
-		char *empty[0];
-		execvp("st", empty);
+	//{
+	//	// note: fork comes from unistd.h and when called starts a child process for the next functions
+	//	if (fork() == 0)
+	//	{
+	//		if (self->display)
+	//			close(ConnectionNumber(self->display));
+	//		setsid();
 
-		fprintf(stderr, "wm: execvp %s", "st");
-		perror(" failed");
-		exit(EXIT_SUCCESS);
-	}
+	//		char *empty[0];
+	//		execvp("st", empty);
+
+	//		fprintf(stderr, "wm: execvp %s", "st");
+	//		perror(" failed");
+	//		exit(EXIT_SUCCESS);
+	//	}
+	//}
 }
 
 static void decorate_window(WM *self, Window w)

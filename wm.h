@@ -11,6 +11,9 @@ struct WindowManager
 	Display *display;		// handle Xlib display struct. establishes a connection to the Xserver
 	Window root;			// handle to root window aka the window manager
 
+	int random_1;
+	int random_2;
+
 	// clients
 	int numClients;
 	Window clients[100];
