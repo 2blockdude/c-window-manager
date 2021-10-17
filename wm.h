@@ -20,8 +20,8 @@ struct WindowManager
 	// actual window that the Xserver handles.
 
 	// function pointers to start wm
-	void (*run)								(WM *self);
-	void (*close)							(WM *self);
+	void (*run)							(WM *self);
+	void (*close)						(WM *self);
 
 	// function pointers to wm requests/notfity
 	void (*handler[LASTEvent])			(WM *self, XEvent *e);
@@ -34,20 +34,22 @@ static void close_window_manager		(WM *self);
 
 static void on_create_notify			(WM *self, XEvent *e);
 static void on_destroy_notify			(WM *self, XEvent *e);
-static void on_reparent_notify		(WM *self, XEvent *e);
+static void on_reparent_notify			(WM *self, XEvent *e);
 static void on_map_notify				(WM *self, XEvent *e);
 static void on_mapping_notify			(WM *self, XEvent *e);
-static void on_unmap_notify			(WM *self, XEvent *e);
-static void on_configure_notify		(WM *self, XEvent *e);
+static void on_unmap_notify				(WM *self, XEvent *e);
+static void on_configure_notify			(WM *self, XEvent *e);
 static void on_map_request				(WM *self, XEvent *e);
 static void on_configure_request		(WM *self, XEvent *e);
-static void on_button_press			(WM *self, XEvent *e);
+static void on_button_press				(WM *self, XEvent *e);
 static void on_button_release			(WM *self, XEvent *e);
 static void on_motion_notify			(WM *self, XEvent *e);
 static void on_key_press				(WM *self, XEvent *e);
 static void on_key_release				(WM *self, XEvent *e);
 
-static void decorate_window			(WM *self, Window w);
+static void decorate_window				(WM *self, Window w);
 static void undecorate_window			(WM *self, Window w);
+static void kill_client					(WM *self, Window w);
+static void spawn_client				(WM *self, char *bin, char *argv[]);
 
 #endif
