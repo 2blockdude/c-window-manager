@@ -12,33 +12,33 @@
 
 #include "wm.h"
 
-static void setup_window_manager		(WM *self);
-static void start_window_manager		(WM *self);
-static void close_window_manager		(WM *self);
+static void setup_window_manager		(struct window_manager *self);
+static void start_window_manager		(struct window_manager *self);
+static void close_window_manager		(struct window_manager *self);
 
-static void on_create_notify			(WM *self, XEvent *e);
-static void on_destroy_notify			(WM *self, XEvent *e);
-static void on_reparent_notify			(WM *self, XEvent *e);
-static void on_map_notify				(WM *self, XEvent *e);
-static void on_mapping_notify			(WM *self, XEvent *e);
-static void on_unmap_notify				(WM *self, XEvent *e);
-static void on_configure_notify			(WM *self, XEvent *e);
-static void on_map_request				(WM *self, XEvent *e);
-static void on_configure_request		(WM *self, XEvent *e);
-static void on_button_press				(WM *self, XEvent *e);
-static void on_button_release			(WM *self, XEvent *e);
-static void on_motion_notify			(WM *self, XEvent *e);
-static void on_key_press				(WM *self, XEvent *e);
-static void on_key_release				(WM *self, XEvent *e);
+static void on_create_notify			(struct window_manager *self, XEvent *e);
+static void on_destroy_notify			(struct window_manager *self, XEvent *e);
+static void on_reparent_notify		(struct window_manager *self, XEvent *e);
+static void on_map_notify				(struct window_manager *self, XEvent *e);
+static void on_mapping_notify			(struct window_manager *self, XEvent *e);
+static void on_unmap_notify			(struct window_manager *self, XEvent *e);
+static void on_configure_notify		(struct window_manager *self, XEvent *e);
+static void on_map_request				(struct window_manager *self, XEvent *e);
+static void on_configure_request		(struct window_manager *self, XEvent *e);
+static void on_button_press			(struct window_manager *self, XEvent *e);
+static void on_button_release			(struct window_manager *self, XEvent *e);
+static void on_motion_notify			(struct window_manager *self, XEvent *e);
+static void on_key_press				(struct window_manager *self, XEvent *e);
+static void on_key_release				(struct window_manager *self, XEvent *e);
 
-static void decorate_window				(WM *self, Window w);
-static void undecorate_window			(WM *self, Window w);
-static void kill_client					(WM *self, Window w);
-static void spawn_client				(WM *self, char *bin, char *argv[]);
+static void decorate_window			(struct window_manager *self, Window w);
+static void undecorate_window			(struct window_manager *self, Window w);
+static void kill_client					(struct window_manager *self, Window w);
+static void spawn_client				(struct window_manager *self, char *bin, char *argv[]);
 
-WM *new_window_manager()
+struct window_manager *new_window_manager()
 {
-	WM *wm = malloc(sizeof(WM));;
+	struct window_manager *wm = malloc(sizeof(struct window_manager));;
 
 	wm->running = 0;
 	wm->display = XOpenDisplay(NULL); if (wm->display == NULL) { free(wm); return NULL; }
@@ -68,7 +68,7 @@ WM *new_window_manager()
 	return wm;
 }
 
-static void setup_window_manager(WM *self)
+static void setup_window_manager(struct window_manager *self)
 {
 	// note: for SubstructreRedirectMask | SubstructureNotifyMask I think we are
 	// combining the two masks for some reason.
@@ -100,7 +100,7 @@ static void setup_window_manager(WM *self)
 	start_window_manager(self);
 }
 
-static void start_window_manager(WM *self)
+static void start_window_manager(struct window_manager *self)
 {
 	self->running = 1;
 
@@ -112,21 +112,21 @@ static void start_window_manager(WM *self)
 			self->handler[e.type](self, &e);
 }
 
-static void close_window_manager(WM *self)
+static void close_window_manager(struct window_manager *self)
 {
 	// break connection to xserver
 	XCloseDisplay(self->display);
 	self->display = NULL;
 }
 
-static void on_create_notify(WM *self, XEvent *e) {}
-static void on_destroy_notify(WM *self, XEvent *e) {}
-static void on_reparent_notify(WM *self, XEvent *e) {}
-static void on_map_notify(WM *self, XEvent *e) {}
+static void on_create_notify(struct window_manager *self, XEvent *e) {}
+static void on_destroy_notify(struct window_manager *self, XEvent *e) {}
+static void on_reparent_notify(struct window_manager *self, XEvent *e) {}
+static void on_map_notify(struct window_manager *self, XEvent *e) {}
 
-static void on_mapping_notify(WM *self, XEvent *e) {}
+static void on_mapping_notify(struct window_manager *self, XEvent *e) {}
 
-static void on_unmap_notify(WM *self, XEvent *e)
+static void on_unmap_notify(struct window_manager *self, XEvent *e)
 {
 	XUnmapEvent *ev = &e->xunmap;
 
@@ -135,9 +135,9 @@ static void on_unmap_notify(WM *self, XEvent *e)
 	//undecorate_window(self, ev->window);
 }
 
-static void on_configure_notify(WM *self, XEvent *e) {}
+static void on_configure_notify(struct window_manager *self, XEvent *e) {}
 
-static void on_map_request(WM *self, XEvent *e)
+static void on_map_request(struct window_manager *self, XEvent *e)
 {
 	XMapRequestEvent *ev = &e->xmaprequest;
 
@@ -152,7 +152,7 @@ static void on_map_request(WM *self, XEvent *e)
 	XMapWindow(self->display, ev->window);
 }
 
-static void on_configure_request(WM *self, XEvent *e)
+static void on_configure_request(struct window_manager *self, XEvent *e)
 {
 	XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges changes;
@@ -170,20 +170,20 @@ static void on_configure_request(WM *self, XEvent *e)
 	XConfigureWindow(self->display, ev->window, ev->value_mask, &changes);
 }
 
-static void on_button_press(WM *self, XEvent *e)
+static void on_button_press(struct window_manager *self, XEvent *e)
 {
 	XButtonPressedEvent *ev = &e->xbutton;
 
 	XRaiseWindow(self->display, ev->window);
 }
 
-static void on_button_release(WM *self, XEvent *e)
+static void on_button_release(struct window_manager *self, XEvent *e)
 {
 	XButtonEvent *ev = &e->xbutton;
 
 }
 
-static void on_motion_notify(WM *self, XEvent *e)
+static void on_motion_notify(struct window_manager *self, XEvent *e)
 {
 	XMotionEvent *ev = &e->xmotion;
 
@@ -193,7 +193,7 @@ static void on_motion_notify(WM *self, XEvent *e)
 	}
 }
 
-static void on_key_press(WM *self, XEvent *e)
+static void on_key_press(struct window_manager *self, XEvent *e)
 {
 	XKeyEvent *ev = &e->xkey;
 
@@ -212,9 +212,9 @@ static void on_key_press(WM *self, XEvent *e)
 	}
 }
 
-static void on_key_release(WM *self, XEvent *e) {}
+static void on_key_release(struct window_manager *self, XEvent *e) {}
 
-static void decorate_window(WM *self, Window w)
+static void decorate_window(struct window_manager *self, Window w)
 {
 	// get attributes of the window sending the map request
 	XWindowAttributes windowAttributes;
@@ -251,7 +251,7 @@ static void decorate_window(WM *self, Window w)
 	XGrabKey(self->display, XKeysymToKeycode(self->display, XK_Tab), Mod1Mask, w, 0, GrabModeAsync, GrabModeAsync);
 }
 
-static void undecorate_window(WM *self, Window w)
+static void undecorate_window(struct window_manager *self, Window w)
 {
 	// reverse of frame
 	Window frame = self->clients[w % 100];
@@ -260,7 +260,7 @@ static void undecorate_window(WM *self, Window w)
 	XDestroyWindow(self->display, frame);
 }
 
-static void kill_client(WM *self, Window w)
+static void kill_client(struct window_manager *self, Window w)
 {
 	Atom *supportedProtocols;
 	int numSupportedProtocols;
@@ -270,10 +270,10 @@ static void kill_client(WM *self, Window w)
 		// gracefully close
 		XEvent msg;
 		msg.xclient.type = ClientMessage;
-		msg.xclient.message_type =	XInternAtom(self->display, "WM_PROTOCOLS", 0);
+		msg.xclient.message_type =	XInternAtom(self->display, "struct window_manager_PROTOCOLS", 0);
 		msg.xclient.window = w;
 		msg.xclient.format = 32; // unsure what 32 means
-		msg.xclient.data.l[0] = XInternAtom(self->display, "WM_DELETE_WINDOW", 0);
+		msg.xclient.data.l[0] = XInternAtom(self->display, "struct window_manager_DELETE_WINDOW", 0);
 		XSendEvent(self->display, w, 0, 0, &msg);
 	}
 	else
@@ -287,7 +287,7 @@ static void kill_client(WM *self, Window w)
 	}
 }
 
-static void spawn_client(WM *self, char *bin, char *argv[])
+static void spawn_client(struct window_manager *self, char *bin, char *argv[])
 {
 	// note: fork comes from unistd.h and when called starts a child process for the next functions
 

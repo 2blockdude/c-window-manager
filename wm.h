@@ -3,8 +3,8 @@
 
 #include <X11/Xlib.h>
 
-typedef struct WindowManager WM;
-struct WindowManager
+typedef struct window_manager WM;
+struct window_manager
 {
 	// wm stuff
 	int running;
@@ -20,13 +20,13 @@ struct WindowManager
 	// actual window that the Xserver handles.
 
 	// function pointers to start wm
-	void (*run)							(WM *self);
-	void (*close)						(WM *self);
+	void (*run)							(struct window_manager *self);
+	void (*close)						(struct window_manager *self);
 
 	// function pointers to wm requests/notfity
-	void (*handler[LASTEvent])			(WM *self, XEvent *e);
+	void (*handler[LASTEvent])			(struct window_manager *self, XEvent *e);
 };
 
-WM *new_window_manager					();
+struct window_manager *new_window_manager					();
 
 #endif
