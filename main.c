@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "wm.h"
+#include "window-manager.h"
 
 int main()
 {
